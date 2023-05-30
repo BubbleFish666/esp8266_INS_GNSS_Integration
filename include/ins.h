@@ -4,35 +4,35 @@
 
 class INS {
 private:
-  float _psi0 = 0;
-  float _theta0 = 0;
-  float _phi0 = 0;
+  float psi0_ = 0;
+  float theta0_ = 0;
+  float phi0_ = 0;
 
-  Eigen::Matrix3f _Rnb0;
-  Eigen::Matrix3f _Rb0b;
-  Eigen::Matrix3f _Rnb;
+  Eigen::Matrix3f Rnb0_;
+  Eigen::Matrix3f Rb0b_;
+  Eigen::Matrix3f Rnb_;
   
-  Eigen::Vector2f _v_eb_n;
+  Eigen::Vector2f v_eb_n_;
   
-  float _lat0;
-  float _lon0;
-  float _lat_incre_total = 0;
-  float _lon_incre_total = 0;
-  float _lat;
-  float _lon;
-  int _lat0_int;
-  int _lon0_int;
-  float _lat0_frac;
-  float _lon0_frac;
+  float lat0_;
+  float lon0_;
+  float lat_incre_total_ = 0;
+  float lon_incre_total_ = 0;
+  float lat_;
+  float lon_;
+  int lat0_int_;
+  int lon0_int_;
+  float lat0_frac_;
+  float lon0_frac_;
 
-  float _h = 0;
+  float h_ = 0;
 
-  Eigen::Vector3f _ba;
-  Eigen::Vector3f _bg;
+  Eigen::Vector3f ba_;
+  Eigen::Vector3f bg_;
 
-  float _T;
+  float T_;
 
-  float llh_scale = 1000;
+  float llh_scale_ = 1000;
 
   friend class KalmanFilter;
 

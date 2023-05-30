@@ -18,71 +18,71 @@
 //   _P_k_1 = Eigen::Matrix3f::Identity();
 // }
 
-KalmanFilter::KalmanFilter(INS& ins) : _ins(ins) {
+KalmanFilter::KalmanFilter(INS& ins) : ins_(ins) {
   // initialize error states
-  _dspi_nb << 0, 0, 0;
-  _dv_eb_n << 0, 0;
-  _dllh << 0, 0;
-  _ba << 0, 0, 0;
-  _bg << 0, 0, 0;
+  dspi_nb_ << 0, 0, 0;
+  dv_eb_n_ << 0, 0;
+  dllh_ << 0, 0;
+  ba_ << 0, 0, 0;
+  bg_ << 0, 0, 0;
 
   // initialize covariance of estimate
-  _P_covar.resize(13, 13);
-  _P_covar.setZero();
+  P_.resize(13, 13);
+  P_.setZero();
   // roll pitch yaw
-  _P_covar(0, 0) = deg2rad(10) * deg2rad(10);
-  _P_covar(1, 1) = deg2rad(10) * deg2rad(10);
-  _P_covar(2, 2) = deg2rad(10) * deg2rad(10);
+  P_(0, 0) = deg2rad(10) * deg2rad(10);
+  P_(1, 1) = deg2rad(10) * deg2rad(10);
+  P_(2, 2) = deg2rad(10) * deg2rad(10);
   // velocity north and east
-  _P_covar(3, 3) = 0.5 * 0.5;
-  _P_covar(4, 4) = 0.5 * 0.5;
+  P_(3, 3) = 0.5 * 0.5;
+  P_(4, 4) = 0.5 * 0.5;
   // position latitude and longitude
-  _P_covar(5, 5) =
-      (2.5 * _ins.llh_scale / meridionalRadius(_ins._lat0 / _ins.llh_scale));
-  _P_covar(6, 6) =
-      (4.0 * _ins.llh_scale / transverseRadius(_ins._lat0 / _ins.llh_scale) /
-       cosf(_ins._lat0 / _ins.llh_scale));
-  _P_covar(5, 5) = _P_covar(5, 5) * _P_covar(5, 5);
-  _P_covar(6, 6) = _P_covar(6, 6) * _P_covar(6, 6);
+  P_(5, 5) =
+      (2.5 * ins_.llh_scale_ / meridionalRadius(ins_.lat0_ / ins_.llh_scale_));
+  P_(6, 6) =
+      (4.0 * ins_.llh_scale_ / transverseRadius(ins_.lat0_ / ins_.llh_scale_) /
+       cosf(ins_.lat0_ / ins_.llh_scale_));
+  P_(5, 5) = P_(5, 5) * P_(5, 5);
+  P_(6, 6) = P_(6, 6) * P_(6, 6);
   // accelerometer bias
-  _P_covar(7, 7) = (0.04e-3 * 10) * (0.04e-3 * 10);  // (0.04 mg)^2
-  _P_covar(8, 8) = (0.04e-3 * 10) * (0.04e-3 * 10);  // (0.04 mg)^2
-  _P_covar(9, 9) = (0.04e-3 * 10) * (0.04e-3 * 10);  // (0.04 mg)^2
+  P_(7, 7) = (0.04e-3 * 10) * (0.04e-3 * 10);  // (0.04 mg)^2
+  P_(8, 8) = (0.04e-3 * 10) * (0.04e-3 * 10);  // (0.04 mg)^2
+  P_(9, 9) = (0.04e-3 * 10) * (0.04e-3 * 10);  // (0.04 mg)^2
   // gyro bias
-  _P_covar(10, 10) = (deg2rad(10) / 3600) * (deg2rad(10) / 3600);  // (10 deg/h)^2
-  _P_covar(11, 11) = (deg2rad(10) / 3600) * (deg2rad(10) / 3600);  // (10 deg/h)^2
-  _P_covar(12, 12) = (deg2rad(10) / 3600) * (deg2rad(10) / 3600);  // (10 deg/h)^2
+  P_(10, 10) = (deg2rad(10) / 3600) * (deg2rad(10) / 3600);  // (10 deg/h)^2
+  P_(11, 11) = (deg2rad(10) / 3600) * (deg2rad(10) / 3600);  // (10 deg/h)^2
+  P_(12, 12) = (deg2rad(10) / 3600) * (deg2rad(10) / 3600);  // (10 deg/h)^2
 
   // initialize measurement matrix
-  _H.resize(4, 13);
-  _H << 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  H_.resize(4, 13);
+  H_ << 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0;
 
   // initialize system noise
-  _Q.resize(13, 13);
-  _Q.setZero();
+  Q_.resize(13, 13);
+  Q_.setZero();
   // gyro noise 0.007 deg/s/sqr(Hz)
-  _Q.block(0, 0, 3, 3) = (3 * deg2rad(0.007)) * (3 * deg2rad(0.007)) * _ins._T *
+  Q_.block(0, 0, 3, 3) = (3 * deg2rad(0.007)) * (3 * deg2rad(0.007)) * ins_.T_ *
                          Eigen::Matrix3f::Identity();
   // accelorometer noise 120 ug/sqr(Hz)
-  _Q.block(3, 3, 2, 2) = (3 * 120e-6 * 10) * (3 * 120e-6 * 10) * _ins._T *
+  Q_.block(3, 3, 2, 2) = (3 * 120e-6 * 10) * (3 * 120e-6 * 10) * ins_.T_ *
                          Eigen::Matrix2f::Identity();
   // accelerometer dynamic bias 0.04 mg
-  _Q.block(7, 7, 3, 3) =
+  Q_.block(7, 7, 3, 3) =
       (3 * 0.04e-3 * 10) * (3 * 0.04e-3 * 10) * Eigen::Matrix3f::Identity();
   // gyro dynamic bias 10 deg/h
-  _Q.block(10, 10, 3, 3) = (3 * deg2rad(10) / 3600) * (3 * deg2rad(10) / 3600) *
+  Q_.block(10, 10, 3, 3) = (3 * deg2rad(10) / 3600) * (3 * deg2rad(10) / 3600) *
                            Eigen::Matrix3f::Identity();
 
   // initialize measurement noise
-  _R.resize(4, 4);
-  _R << 0.05, 0, 0, 0,
+  R_.resize(4, 4);
+  R_ << 0.05, 0, 0, 0,
         0, 0.05, 0, 0,
-        0, 0, 2.5 * _ins.llh_scale / meridionalRadius(_ins._lat / _ins.llh_scale), 0,
-        0, 0, 0, 4.0 * _ins.llh_scale / transverseRadius(_ins._lat / _ins.llh_scale) / cosf(_ins._lat / _ins.llh_scale);
-  _R = _R * _R;
+        0, 0, 2.5 * ins_.llh_scale_ / meridionalRadius(ins_.lat_ / ins_.llh_scale_), 0,
+        0, 0, 0, 4.0 * ins_.llh_scale_ / transverseRadius(ins_.lat_ / ins_.llh_scale_) / cosf(ins_.lat_ / ins_.llh_scale_);
+  R_ = R_ * R_;
 }
 
 /*state function of the system*/

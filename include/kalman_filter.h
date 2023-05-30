@@ -5,36 +5,36 @@
 class KalmanFilter {
 private:
   // INS to be corrected
-  INS& _ins;
+  INS& ins_;
   
   // attitude errors
-  Eigen::Vector3f _dspi_nb;
+  Eigen::Vector3f dspi_nb_;
 
   // velocity errors
-  Eigen::Vector2f _dv_eb_n;
+  Eigen::Vector2f dv_eb_n_;
 
   // position errors
-  Eigen::Vector2f _dllh;
+  Eigen::Vector2f dllh_;
 
   // accelerometer and gyro errors
-  Eigen::Vector3f _ba;
-  Eigen::Vector3f _bg;
+  Eigen::Vector3f ba_;
+  Eigen::Vector3f bg_;
 
   // covariance of estimate
-  Eigen::MatrixXf _P_covar;
+  Eigen::MatrixXf P_;
   
   // measurement matrix
-  Eigen::MatrixXf _H;
+  Eigen::MatrixXf H_;
 
   // process (system) noise Q
-  Eigen::MatrixXf _Q;
+  Eigen::MatrixXf Q_;
 
   // measurement noise R
-  Eigen::MatrixXf _R;
+  Eigen::MatrixXf R_;
 
   // prediction
   // transition matrix
-  Eigen::MatrixXf _PHI;
+  Eigen::MatrixXf PHI_;
   // // state estimate of last step
   // Eigen::VectorXf _x_c_k_1;
   // // estimate error covariance of last step
@@ -42,7 +42,7 @@ private:
 
   // correction
   // Kalman gain
-  Eigen::MatrixXf _K;
+  Eigen::MatrixXf K_;
   // // predicted state
   // Eigen::VectorXf _x_p_k;
   // // predicted measurement
