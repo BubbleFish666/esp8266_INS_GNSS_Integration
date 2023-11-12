@@ -3,3 +3,15 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+
+.pio
+.vscode
+.ini
+.csv
+
+include/register_wifi_ap.h
+platformio.ini
+esp-env/
+
+lib/
+test/
