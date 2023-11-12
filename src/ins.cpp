@@ -36,24 +36,24 @@ INS::INS(float roll_rad, float pitch_rad, float yaw_rad, float vn, float ve,
 
 void INS::step(const Eigen::Vector3f& gyro, const Eigen::Vector3f& acc){
   // corrected angular velocity
-  Eigen::Vector3f w_ib_b = gyro;
-  w_ib_b += bg_;
+  w_ib_b_ = gyro;
+  w_ib_b_ += bg_;
 
   // corrected acceleration
-  Eigen::Vector3f f_ib_b = acc;
-  f_ib_b += ba_;
+  f_ib_b_ = acc;
+  f_ib_b_ += ba_;
 
   // attitude
   Eigen::Matrix3f Rnb_ = Rnb_;
   Eigen::Matrix3f omega_ib_b;
-  omega_ib_b << 0, -w_ib_b(2), w_ib_b(1),
-                w_ib_b(2), 0, -w_ib_b(0),
-                -w_ib_b(1), w_ib_b(0), 0;
+  omega_ib_b << 0, -w_ib_b_(2), w_ib_b_(1),
+                w_ib_b_(2), 0, -w_ib_b_(0),
+                -w_ib_b_(1), w_ib_b_(0), 0;
   Rnb_ = Rnb_ * (Eigen::Matrix3f::Identity() + omega_ib_b * T_);
 
   // velocity
   auto v_eb_n_1 = v_eb_n_;
-  auto v_incre = Rnb_ * f_ib_b * T_;
+  auto v_incre = Rnb_ * f_ib_b_ * T_;
   v_eb_n_(0) += v_incre(0);
   v_eb_n_(1) += v_incre(1);
 

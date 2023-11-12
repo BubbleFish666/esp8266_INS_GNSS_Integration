@@ -4,6 +4,7 @@
 
 class INS {
 private:
+  // initial orientation
   float psi0_ = 0;
   float theta0_ = 0;
   float phi0_ = 0;
@@ -12,8 +13,10 @@ private:
   Eigen::Matrix3f Rb0b_;
   Eigen::Matrix3f Rnb_;
   
+  // velocity
   Eigen::Vector2f v_eb_n_;
   
+  // position
   float lat0_;
   float lon0_;
   float lat_incre_total_ = 0;
@@ -27,13 +30,21 @@ private:
 
   float h_ = 0;
 
+  // accelerometer error and gyro error
   Eigen::Vector3f ba_;
   Eigen::Vector3f bg_;
 
+  // sample time interval
   float T_;
 
+  // accelerometer and gyro readings
+  Eigen::Vector3f f_ib_b_;
+  Eigen::Vector3f w_ib_b_;
+
+  // scale the longitude and latitude to milli-radian
   float llh_scale_ = 1000;
 
+  // the Kalman Filter used to aid the INS
   friend class KalmanFilter;
 
 public:

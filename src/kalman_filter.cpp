@@ -18,6 +18,8 @@
 //   _P_k_1 = Eigen::Matrix3f::Identity();
 // }
 
+/*constructor
+  @param ins the INS that needs to be aided by the Kalman Filter*/
 KalmanFilter::KalmanFilter(INS& ins) : ins_(ins) {
   // initialize error states
   dspi_nb_ << 0, 0, 0;
@@ -64,17 +66,20 @@ KalmanFilter::KalmanFilter(INS& ins) : ins_(ins) {
   Q_.resize(13, 13);
   Q_.setZero();
   // gyro noise 0.007 deg/s/sqr(Hz)
-  Q_.block(0, 0, 3, 3) = (3 * deg2rad(0.007)) * (3 * deg2rad(0.007)) * ins_.T_ *
-                         Eigen::Matrix3f::Identity();
+  Q_(Eigen::seq(0, 2), Eigen::seq(0, 2)) = (3 * deg2rad(0.007)) *
+                                           (3 * deg2rad(0.007)) * ins_.T_ *
+                                           Eigen::Matrix3f::Identity();
   // accelorometer noise 120 ug/sqr(Hz)
-  Q_.block(3, 3, 2, 2) = (3 * 120e-6 * 10) * (3 * 120e-6 * 10) * ins_.T_ *
-                         Eigen::Matrix2f::Identity();
+  Q_(Eigen::seq(3, 4), Eigen::seq(3, 4)) = (3 * 120e-6 * 10) *
+                                           (3 * 120e-6 * 10) * ins_.T_ *
+                                           Eigen::Matrix2f::Identity();
   // accelerometer dynamic bias 0.04 mg
-  Q_.block(7, 7, 3, 3) =
+  Q_(Eigen::seq(7, 9), Eigen::seq(7, 9)) =
       (3 * 0.04e-3 * 10) * (3 * 0.04e-3 * 10) * Eigen::Matrix3f::Identity();
   // gyro dynamic bias 10 deg/h
-  Q_.block(10, 10, 3, 3) = (3 * deg2rad(10) / 3600) * (3 * deg2rad(10) / 3600) *
-                           Eigen::Matrix3f::Identity();
+  Q_(Eigen::seq(10, 12), Eigen::seq(10, 12)) = (3 * deg2rad(10) / 3600) *
+                                               (3 * deg2rad(10) / 3600) *
+                                               Eigen::Matrix3f::Identity();
 
   // initialize measurement noise
   R_.resize(4, 4);
@@ -83,6 +88,49 @@ KalmanFilter::KalmanFilter(INS& ins) : ins_(ins) {
         0, 0, 2.5 * ins_.llh_scale_ / meridionalRadius(ins_.lat_ / ins_.llh_scale_), 0,
         0, 0, 0, 4.0 * ins_.llh_scale_ / transverseRadius(ins_.lat_ / ins_.llh_scale_) / cosf(ins_.lat_ / ins_.llh_scale_);
   R_ = R_ * R_;
+
+  // initialize transition matrix
+  PHI_.resize(13, 13);
+  PHI_.setZero();
+  PHI_(Eigen::seq(0, 2), Eigen::seq(0, 2)) = Eigen::Matrix3f::Identity();
+  PHI_(Eigen::seq(3, 4), Eigen::seq(3, 4)) = Eigen::Matrix2f::Identity();
+  PHI_(Eigen::seq(5, 6), Eigen::seq(5, 6)) = Eigen::Matrix2f::Identity();
+  PHI_(Eigen::seq(7, 9), Eigen::seq(7, 9)) = Eigen::Matrix3f::Identity();
+  PHI_(Eigen::seq(10, 12), Eigen::seq(10, 12)) = Eigen::Matrix3f::Identity();
+}
+
+/*prediction (propagation) phase of the Kalman Filter*/
+void KalmanFilter::predict() {
+  // update the transition matrix PHI_
+  // 0-2 rows, delta phi, delta theta, and delta psi
+  auto f_ib_n = ins_.Rnb_ * ins_.f_ib_b_;
+  PHI_(Eigen::seq(0, 2), Eigen::seq(10, 12)) = ins_.Rnb_ * ins_.T_;
+
+  // 3-4 rows, delta velocity north and delta velocity east
+  PHI_(Eigen::seq(3, 4), Eigen::seq(0, 2)) << 0, f_ib_n(2), -f_ib_n(1),
+                                              -f_ib_n(2), 0, f_ib_n(0);
+  PHI_(Eigen::seq(3, 4), Eigen::seq(0, 2)) *= ins_.T_;
+  PHI_(Eigen::seq(3, 4), Eigen::seq(7, 9)) = ins_.Rnb_(Eigen::seq(0, 1), Eigen::seq(0, 2)) * ins_.T_;
+
+  // 5-6 rows, delta latitude and delta longitude
+  PHI_(Eigen::seq(5, 6), Eigen::seq(3, 4)) << 
+    ins_.T_ * ins_.llh_scale_ / (meridionalRadius(ins_.lat_ / ins_.llh_scale_) + ins_.h_), 0,
+    0, ins_.T_ * ins_.llh_scale_ / ((transverseRadius(ins_.lat_ / ins_.llh_scale_) + ins_.h_) * cosf(ins_.lat_ / ins_.llh_scale_));
+
+  // 7-9 rows, accelerometer x-, y- and z-error
+  // 10-12 rows, gyro x-, y-, and z-error
+  // These 6 rows are constant so they are already initialized in constructor.
+  
+  // propagation
+  P_ = PHI_ * P_ * PHI_.transpose() + Q_;
+  
+  // Note: the states are zeroed after each correction, so no need to propagate
+  // them as they are zero during propagation anyway.
+}
+
+/*correction (measurement) phase of the Kalman Filter*/
+void KalmanFilter::correct() {
+
 }
 
 /*state function of the system*/
